@@ -26,12 +26,23 @@ class DPS:
                     i = tight[0]
                     while (ai - beta[i * noc + idx] <= dist[i * noc + idx]):
                         beta[i * noc + idx] += 1.0
-                    
-            
             
             t += 1
         
         return
+    
+    def dual_primal_phase2(self, T, w):
+        tprime = set()
+        
+        while (len(T) > 0):
+            i = np.random.choice(T)
+            tprime.add(i)
+            
+            for h in T:
+                for j in range(500):
+                    if (w[i][j] > 0 and w[h][j] > 0):
+                        T.remove(h)        
+        return tprime
     
 if __name__ == '__main__':
     dp = DPS()

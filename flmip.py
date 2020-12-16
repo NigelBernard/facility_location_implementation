@@ -2,10 +2,13 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import pickle
-#import psutil
+import psutil
+import time
+from datetime import timedelta
+import platform
 from ortools.linear_solver import pywraplp
 
-class FLLP:
+class FLLP:    
     def readinput(self, fname, noc):
         # Create a numpy array to store coords
         # Read and store values from the text file
@@ -144,18 +147,43 @@ class FLLP:
                             connectedterms.add(k)
 
         return yint, xint, openedf
+ 
+def fetchPlatform():
+    print("="*40, "System Information", "="*40)
+    uname = platform.uname()
+    print(f"System: {uname.system}")
+    print(f"Node Name: {uname.node}")
+    print(f"Release: {uname.release}")
+    print(f"Version: {uname.version}")
+    print(f"Machine: {uname.machine}")
+    print(f"Processor: {uname.processor}")
     
+    return   
+ 
 if __name__ == '__main__':
     flmip = FLLP()
     # Read distances from file
     fname = 'distances.pkl'
     dist = pickle.load(open(fname, 'rb'))
-    facility_op_cost = 40
+    facility_op_cost = 39.03502850891936
     
+    # LP Solver
+    start_time = time.monotonic()
+    start_mem = psutil.virtual_memory().used
     y, x, fac, con = flmip.solve_lp(dist, f = facility_op_cost, noc = 500)
     print('Facility opening cost (LP):', fac)
     print('Total Connection Cost (LP):', con)
+    end_mem = psutil.virtual_memory().used
+    end_time = time.monotonic()
+    memory_used = end_mem- start_mem
+    time_elapsed = timedelta(seconds = end_time - start_time)
+    print("Time Elapsed: ", time_elapsed)
+    print("Total cores:", psutil.cpu_count(logical=True))
+    print('*' * 20)
     
+    # Call 6 approximation rounding
+    start_time = time.monotonic()
+    start_mem = psutil.virtual_memory().used
     fy, fx, facint = flmip.filter_round_solution(y, x, dist)
     print('\nNumber of facilities open', len(facint))
     facop = sum(facility_op_cost * fy)
@@ -163,6 +191,13 @@ if __name__ == '__main__':
     print('Facility opening cost (6-approx.):', facop)
     print('Total Connection Cost (6-approx.):', iconc)
     print('Optimal Value of (6-approx.):', facop + iconc)
+    end_mem = psutil.virtual_memory().used
+    end_time = time.monotonic()
+    memory_used = end_mem- start_mem
+    time_elapsed = timedelta(seconds = end_time - start_time)
+    print("Time Elapsed: ", time_elapsed)
+    print("Total cores:", psutil.cpu_count(logical=True))
+    print('*' * 20)
     
     fy4, fx4, facint4 = flmip.filter_round_solution(y, x, dist, alpha = True)
     print('\nNumber of facilities open', len(facint4))
@@ -171,3 +206,8 @@ if __name__ == '__main__':
     print('Facility opening cost (4-approx.):', facop4)
     print('Total Connection Cost (4-approx.):', iconc4)
     print('Optimal Value of (4-approx.):', facop4 + iconc4)
+    
+    # CPU frequencies
+    cpufreq = psutil.cpu_freq()
+    print(f"Frequency: {cpufreq.max:.2f}Mhz")
+    fetchPlatform()
